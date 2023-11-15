@@ -15,20 +15,28 @@
 
 import pyautogui, asyncio, pickle
 from websockets.server import serve
-x = 0
-y = 0
-connected = set()
+
+gru = None
+minion = None
 async def echo(websocket):
-    global x, y
-    while True:
-        new_x, new_y = pyautogui.position()
-        if new_x != x or new_y != y:
-            x, y = new_x, new_y
-            await websocket.send(pickle.dumps([x, y]))
+    global x, y, gru
+    if gru is None:
+        gru = websocket
+        gru.send("Connected")
+    else:
+        minion = websocket
+        minion.send("Connected")
+
+    while gru and minion:
+        await minion.send(pickle.dumps([x, y]))
         await asyncio.sleep(0.1)
+    else:
+        gru.send("await for peers")
+        minion.send("await for peers")
+
 
 async def main():
-    async with serve(echo, "localhost", 8765):
+    async with serve(echo, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())
