@@ -13,13 +13,13 @@
 # if __name__ == "__main__":
 #     watch_clipboard()
 
-import pyautogui, asyncio, pickle
+import asyncio
 from websockets.server import serve
 
 gru = None
 minion = None
 async def echo(websocket):
-    global x, y, gru
+    global gru, minion
     if gru is None:
         gru = websocket
         gru.send("Connected")
@@ -27,16 +27,17 @@ async def echo(websocket):
         minion = websocket
         minion.send("Connected")
 
-    while gru and minion:
-        await minion.send(pickle.dumps([x, y]))
-        await asyncio.sleep(0.1)
+    if gru and minion:
+        while True:
+            for message in websocket:
+                await minion.send(message)
+                await asyncio.sleep(0.1)
     else:
         gru.send("await for peers")
         minion.send("await for peers")
 
-
 async def main():
-    async with serve(echo, "0.0.0.0", 8765):
+    async with serve(echo, "89.248.206.92", 8765):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())
